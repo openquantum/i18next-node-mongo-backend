@@ -2,11 +2,14 @@ const { MongoClient } = require('mongodb');
 
 const Backend = require('./index');
 
+let connection;
+let db;
+
 const host = '127.0.0.1';
-const port = 27017;
-const user = 'test';
-const password = 'test';
-const dbName = 'test';
+const port = global.__MONGO_URI__.match(/(?:\:\d{2,5})/g)[0].replace(':','');
+const user = '';
+const password = '';
+const dbName = global.__MONGO_DB_NAME__;
 const collectionName = 'i18n';
 
 // Use custom
@@ -45,13 +48,12 @@ const translations = [
   },
 ];
 
-const client = new MongoClient(`mongodb://${host}:${port}/${dbName}`, {
+const client = new MongoClient(
+  `${global.__MONGO_URI__}${global.__MONGO_DB_NAME__}`, {
   useUnifiedTopology: true,
-  auth: {
-    user,
-    password,
-  },
+  useNewUrlParser: true,
 });
+
 
 function asyncify(backend, method, ...params) {
   return new Promise((resolve, reject) =>
@@ -123,20 +125,17 @@ function basicCreateTest(backend) {
   });
 }
 
-async function emptyCollection() {
-  await client.db(dbName).collection(collectionName).deleteMany({});
-}
-
 beforeAll(async () => {
-  await client.connect();
-  await client.db(dbName).createCollection(collectionName);
-  await emptyCollection();
+  connection = await client.connect();
+  db = connection.db();
+  await db.createCollection(collectionName);
+  await db.collection(collectionName).deleteMany({});
 });
 
 beforeEach(async () => {
   const updateTasks = [];
 
-  const collection = await client.db(dbName).collection(collectionName);
+  const collection = await db.collection(collectionName);
 
   for (let i = 0; i < translations.length; i += 1) {
     const translation = translations[i];
@@ -161,14 +160,10 @@ beforeEach(async () => {
 
   await Promise.all(updateTasks);
 });
-
-afterEach(async () => {
-  // await emptyCollection();
-});
+ 
 
 afterAll(async () => {
-  // await client.db(dbName).dropCollection(collectionName);
-  await client.close();
+  await connection.close();
 });
 
 it('Remove MongoDB special character', () => {
