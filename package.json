@@ -1,6 +1,6 @@
 {
   "name": "i18next-node-mongo-backend",
-  "version": "0.0.6",
+  "version": "0.0.8",
   "license": "MIT",
   "description": "Use i18next with mongodb as backend",
   "main": "./index.js",
