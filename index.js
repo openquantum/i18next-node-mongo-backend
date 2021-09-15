@@ -15,9 +15,7 @@ const defaultOpts = {
   readMultiOnError: console.error,
   // eslint-disable-next-line no-console
   createOnError: console.error,
-  mongodb: {
-    useUnifiedTopology: true,
-  },
+  mongodb: {},
 };
 
 // https://www.i18next.com/misc/creating-own-plugins#backend
@@ -51,21 +49,19 @@ class Backend {
   // Private methods
 
   getClient() {
-    if (this.client)
-      return this.client.isConnected()
-        ? Promise.resolve(this.client)
-        : this.client.connect();
-    return MongoClient.connect(this.uri, this.opts.mongodb);
+    return this.client
+      ? this.client.connect()
+      : MongoClient.connect(this.uri, this.opts.mongodb);
   }
 
   getCollection(client) {
     return client
-      .db(this.opts.dbName).listCollections().toArray()
-        .then(res => res.some((arr) => arr.name === this.opts.collectionName))
-      ? client
-      .db(this.opts.dbName).collection(this.opts.collectionName)
-      : client
-      .db(this.opts.dbName).createCollection(this.opts.collectionName);
+      .db(this.opts.dbName)
+      .listCollections()
+      .toArray()
+      .then((res) => res.some((arr) => arr.name === this.opts.collectionName))
+      ? client.db(this.opts.dbName).collection(this.opts.collectionName)
+      : client.db(this.opts.dbName).createCollection(this.opts.collectionName);
   }
 
   sanitizeOpts(opts) {
@@ -125,7 +121,7 @@ class Backend {
         );
 
         // If `this.client` exists (equal to if use custom MongoClient), don't close connection
-        if (!this.client && client.isConnected()) await client.close();
+        if (!this.client && client) await client.close();
         cb(null, (doc && doc[this.opts.dataFieldName]) || {});
       })
       .catch(this.opts.readOnError);
@@ -161,7 +157,7 @@ class Backend {
         }
 
         // If `this.client` exists (equal to if use custom MongoClient), don't close connection
-        if (!this.client && client.isConnected()) await client.close();
+        if (!this.client && client) await client.close();
         cb(null, parsed);
       })
       .catch(this.opts.readMultiOnError);
@@ -193,7 +189,7 @@ class Backend {
         );
 
         // If `this.client` exists (equal to if use custom MongoClient), don't close connection
-        if (!this.client && client.isConnected()) await client.close();
+        if (!this.client && client) await client.close();
         if (cb) cb();
       })
       .catch(this.opts.createOnError);
